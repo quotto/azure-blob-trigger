@@ -2,15 +2,20 @@ const { Octokit, App } = require("octokit");
 const { createAppAuth } = require("@octokit/auth-app");
 module.exports = async function (context, myBlob) {
     context.log("JavaScript blob trigger function processed blob \n Blob:", context.bindingData.blobTrigger, "\n Blob Size:", myBlob.length, "Bytes");
+    context.log(new TextDecoder('utf-8').decode(myBlob));
 
     // myBlobをJSONに変換
-    const json = JSON.parse(myBlob.toString());
+    const json = JSON.parse(new TextDecoder('utf-8').decode(myBlob));
 
+    // privateキーはそのまま環境変数に設定すると改行コードが上手く認識されないため
+    // 改行コードを「\n」という文字で置換している。（つまりは「\\n」）
+    // このためプログラム内で再び改行コードに戻す。
+    const privateKey = process.env["PRIVATE_KEY"].replace(/\\n/g, '\n');
     const octokit = new Octokit({
         authStrategy: createAppAuth,
         auth: {
             appId: process.env["APP_ID"],
-            privateKey: process.env["PRIVATE_KEY"],
+            privateKey: privateKey,
             installationId: process.env["INSTALLATION_ID"],
         },
     });
@@ -28,5 +33,4 @@ module.exports = async function (context, myBlob) {
             rgRegion: json.rgRegion
         }
     });
-
 };
