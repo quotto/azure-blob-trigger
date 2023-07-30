@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {
+      "name": "myBlob",
+      "type": "blobTrigger",
+      "direction": "in",
+      "path": "sftp/{name}",
+      "connection": "storageaccountsftp9999_STORAGE"
+    }
+  ]
+}
