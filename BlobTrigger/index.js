@@ -1,9 +1,7 @@
-const { Octokit, App } = require("octokit");
+const { Octokit } = require("octokit");
 const { createAppAuth } = require("@octokit/auth-app");
+const {ContainerClient} = require('@azure/storage-blob');
 module.exports = async function (context, myBlob) {
-    context.log("JavaScript blob trigger function processed blob \n Blob:", context.bindingData.blobTrigger, "\n Blob Size:", myBlob.length, "Bytes");
-    context.log(new TextDecoder('utf-8').decode(myBlob));
-
     // myBlobをJSONに変換
     const json = JSON.parse(new TextDecoder('utf-8').decode(myBlob));
 
@@ -33,4 +31,38 @@ module.exports = async function (context, myBlob) {
             rgRegion: json.rgRegion
         }
     });
+
+    // 正常に起動すればトリガーで受け取ったファイルを削除する
+    if (response.status == 204) {
+        context.log("GitHub Actions has been started.Delete blob file");
+
+        const containerName = "sftp";
+        const blobName = context.bindingData.name;
+        const blobService = new ContainerClient(`${process.env.storageaccountsftp9999_STORAGE};EndpointSuffix=core.windows.net`, containerName);
+        try {
+            const deleteResponse = await blobService.deleteBlob(blobName);
+            context.log(JSON.stringify(deleteResponse));
+            if(deleteResponse.errorCode) {
+                return {
+                    status: 500,
+                    body: `Delete blob error: ${deleteResponse.errorCode}`
+                }
+            } else {
+                return {
+                    status: 200
+                }
+            }
+        } catch (e) {
+            context.log(e)
+            return {
+                status: 500,
+                body: "Unexpected error"
+            }
+        }
+    } else {
+        return {
+            status: 500,
+            body: JSON.stringify(response.data)
+        }
+    }
 };
